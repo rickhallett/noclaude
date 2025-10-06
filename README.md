@@ -1,95 +1,121 @@
-# NoClaude: The Git History Sanitizer for the AI-Weary Developer
+# NoClaude
 
-In a world where AI assistants inject their egos into your commit messages like uninvited code reviewers, **NoClaude** emerges as the ironic hero: a tool built by developers to erase traces of other tools built by developers. It rewrites your Git history, stripping Claude Code attributions and slapping on your own author details—because nothing says "ownership" like retroactively claiming credit for code you didn't write alone. Crafted in TypeScript with Bun, because why suffer Node's glacial pace when you can embrace a runtime that's probably just a fad? Shipped as an npm package, for that extra layer of dependency hell.
+A CLI tool to remove Claude Code attribution from git history and set a custom author. In the ironic tradition of using code to erase traces of code generators, **NoClaude** rewrites your Git history to strip Claude Code attributions and replace them with your own author details.
 
-## Features (The Bare Minimum to Justify Its Existence)
+Built with TypeScript and Bun.
 
-- **Attribution Extermination**: Ruthlessly deletes "Claude Code from claude.ai/code" lines from commits. Ironic, isn't it? Using code to purge mentions of code generators.
-- **Author Impersonation**: Overwrites every commit's author and committer with your details. Perfect for those moments when you realize sharing credit with an AI is as appealing as merging untested PRs on Friday afternoon.
-- **Reluctant Confirmation**: Forces an interactive prompt before the rewrite. Because developers love nothing more than second-guessing irreversible actions that could brick their repo.
-- **Enforced Bureaucracy**: Mandates both name and email flags. Skip one, and it errors out—mirroring the joy of mandatory fields in a poorly designed CI pipeline.
+## Features
 
-## Requirements (The Usual Suspects You'll Forget to Install)
+- **Remove Claude Code attribution** from commit messages
+- **Rewrite commit author and committer** information
+- **Flexible configuration** via CLI args, environment variables, .env file, or git config
+- **Dry-run mode** to preview changes before execution
+- **Auto-push option** to automatically push after cleaning
+- **Interactive confirmation** before making changes
 
-- **[Bun](https://bun.sh/)**: The hipster runtime that's faster than Node but will likely introduce its own set of obscure bugs. Shebang: `#!/usr/bin/env bun`—pray your env finds it.
-- **Git**: Essential for the history mangling. Without it, this tool is as useful as a linter in a legacy codebase.
-- **Node.js and npm**: Ironically required for installation, even though the tool shuns Node at runtime. Dependency graphs gonna graph.
+## Requirements
 
-## Installation (Yet Another Global Polluter)
+- **[Bun](https://bun.sh/)** - Runtime (≥1.0.0)
+- **Git** - Version control system
+- **Node.js and npm** - For installation
 
-Install it globally, because who doesn't love cluttering their system PATH?
+## Installation
 
 ```bash
 npm install -g noclaude
 ```
 
-Now `noclaude` is ready to haunt your terminal sessions.
+## Usage
 
-## Usage (Invoke at Your Own Peril)
-
-CD into your repo-of-doom and run:
+Navigate to your repository and run:
 
 ```bash
-noclaude -n "Shadow Coder" -e "ghost@nullpointer.com"
+noclaude --name "Your Name" --email "your@email.com"
 ```
 
-### Options (Flags That Mock Your Forgetfulness)
+### Options
 
-- `-n, --name <name>`: Your fabricated author name. Required, or face the void of undefined behavior.
-- `-e, --email <email>`: Matching email. Also required—because partial commits are like half-implemented features: worthless.
+- `-n, --name <name>` - Author name (optional, defaults to env/git config)
+- `-e, --email <email>` - Author email (optional, defaults to env/git config)
+- `-d, --dry-run` - Show what would be done without executing
+- `-p, --auto-push` - Automatically push to remote after cleaning
+- `-h, --help` - Show help message
 
-It'll prompt for confirmation, then proceed to rewrite history. If it fails, enjoy debugging Git's cryptic errors in the dead of night.
+### Configuration Priority
 
-**Warning:** History rewrites are the developer equivalent of deleting production data without backups. Force-pushes will alienate your team, and unpushed changes? Ha, good luck. Use on toy repos only, unless you thrive on chaos.
+The tool looks for author information in this order:
 
-## How It Works (The Gory Internals, Sans the Glory)
+1. Command-line arguments (`--name`, `--email`)
+2. Environment variables (`GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`)
+3. `.env` file in current directory
+4. Git config (`user.name`, `user.email`)
 
-Leverages `git filter-branch`—that ancient Git command you avoid like the plague—with dual filters:
+### Examples
 
-- **Env-Filter**: Sets GIT\_\* env vars to your inputs, making every commit yours. Ironic victory over collaborative illusions.
-- **Msg-Filter**: Pipes through `sed` to excise attribution lines. Simple regex surgery, because string manipulation never goes wrong.
+```bash
+# Using CLI arguments
+noclaude --name "rickhallett" --email "rick@example.com"
 
-All wrapped in `execSync`, for that synchronous blocking feel that grinds your CPU to a halt.
+# Using environment variables
+GIT_AUTHOR_NAME="rickhallett" GIT_AUTHOR_EMAIL="rick@example.com" noclaude
 
-## Development (For When You Hate Yourself Enough to Contribute)
+# Dry-run mode
+noclaude --dry-run
 
-### Build System (Bun's Promise of Speed, Delivered with Strings Attached)
+# Auto-push after cleaning
+noclaude --auto-push
+```
 
-- **Build Command**: `bun run build` – Bundles `src/noclaude.ts` to `dist/noclaude.js` as ESM. Because transpiling is the tax we pay for type safety.
-- **Config**: Target `bun`, ESM format, single entry/output. The `prepublishOnly` hook builds on publish, ensuring you don't ship broken dreams.
+### Warning
 
-### Architecture (Minimalist, Like Your Hopes for Bug-Free Code)
+History rewrites are destructive and irreversible. This is the developer equivalent of deleting production data without backups. Always create a backup before running. Force-pushing will rewrite remote history and can affect collaborators. Use with caution.
 
-One file rules them all: `src/noclaude.ts`.
+## How It Works
 
-1. **Arg Parsing**: Manual, no fancy libs—because over-engineering flags is peak irony.
-2. **Prompt**: Node's `readline`, blocking your terminal like a forgotten console.log in prod.
-3. **Git Exec**: `execSync` runs the filter-branch. If Git barfs, so does your script.
+Uses `git filter-branch` with two filters:
 
-### Constraints (Arbitrary Rules to Enforce Developer Misery)
+- **env-filter** - Sets `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, and `GIT_COMMITTER_EMAIL`
+- **msg-filter** - Uses `sed` to remove Claude Code attribution lines from commit messages
 
-- **Bun Exclusive**: Shebang locks it to Bun. Run with Node? Enjoy the crash and burn.
-- **Lowercase Filenames**: For JS/TS. Capitalization is for amateurs who don't fear case-sensitivity bugs.
-- **No Emojis**: Code and output stay emoji-free. We're not writing Slack bots here.
-- **Flag Mandates**: Both `--name` and `--email` or bust. Partial inputs? Straight to error handling purgatory.
+The tool executes these filters across all commits in your repository history.
 
-### Testing Locally (Simulate the Pain Without Committing)
+## Development
+
+### Build
+
+```bash
+bun run build
+```
+
+Bundles `src/noclaude.ts` to `dist/noclaude.js` as an ESM executable.
+
+### Architecture
+
+Single-file CLI in `src/noclaude.ts`:
+
+1. **Argument parsing** - Handles CLI flags and help text
+2. **Configuration resolution** - Checks CLI args, env vars, .env file, then git config
+3. **Interactive prompt** - Confirms before execution
+4. **Git execution** - Runs `git filter-branch` with `execSync`
+5. **Auto-push** - Optionally pushes to remote after completion
+
+### Testing Locally
 
 ```bash
 bun link
-noclaude -n "Debug Demon" -e "error@stackoverflow.com"
+noclaude --dry-run
 ```
 
-Test on a disposable repo. Watch it rewrite, then weep over the lost original history.
+Test on a disposable repository first.
 
-### Publishing (Inflict This on the World)
+### Publishing
 
-`files` in `package.json` ships only `dist`. Source lingers in the repo like uncommented legacy code—visible but ignored by users.
+The `prepublishOnly` script automatically builds before publishing. Only the `dist` folder is included in the npm package.
 
-## Contributing (Fork at Your Own Risk)
+## Contributing
 
-Fork, hack, PR. Ensure it builds, adheres to constraints, and amplifies the dark irony. Bonus for commits that mock AI overreach.
+Fork, hack, PR. Ensure it builds and passes any tests.
 
-## License (The Illusion of Freedom)
+## License
 
-[MIT License](LICENSE). Free as in beer, but with the hangover of potential repo destruction.
+MIT License. Free as in beer, but with the hangover of potential repo destruction.
