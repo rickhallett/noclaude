@@ -44,6 +44,12 @@ Single-file CLI architecture (`src/noclaude.ts`):
 - Generates conventional commit messages
 - Executes atomic commits with proper categorization (FEAT, FIX, DOCS, REFACTOR, etc.)
 
+**After every git commit, use the readme-updater agent** to keep README.md current:
+- Analyzes recent code changes and new features
+- Updates documentation to reflect current implementation
+- Ensures installation, usage, and API documentation stays accurate
+- Maintains consistency between code and documentation
+
 ## Testing Locally
 
 ```bash
