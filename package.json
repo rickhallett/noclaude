@@ -22,6 +22,14 @@
   ],
   "author": "rickhallett",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rickhallett/noclaude.git"
+  },
+  "homepage": "https://github.com/rickhallett/noclaude#readme",
+  "bugs": {
+    "url": "https://github.com/rickhallett/noclaude/issues"
+  },
   "engines": {
     "bun": ">=1.0.0"
   },
