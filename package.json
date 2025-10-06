@@ -1,6 +1,6 @@
 {
   "name": "noclaude",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Remove 'Generated with Claude Code' from git history and set custom author",
   "main": "dist/noclaude.js",
   "bin": {
