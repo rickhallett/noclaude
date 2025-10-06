@@ -22,6 +22,7 @@ interface Args {
   name?: string;
   email?: string;
   dryRun: boolean;
+  autoPush: boolean;
 }
 
 interface AuthorInfo {
@@ -34,7 +35,8 @@ function parseArgs(): Args {
   const parsed: Args = {
     name: undefined,
     email: undefined,
-    dryRun: false
+    dryRun: false,
+    autoPush: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -44,6 +46,8 @@ function parseArgs(): Args {
       parsed.email = args[++i];
     } else if (args[i] === '--dry-run' || args[i] === '-d') {
       parsed.dryRun = true;
+    } else if (args[i] === '--auto-push' || args[i] === '-p') {
+      parsed.autoPush = true;
     } else if (args[i] === '--help' || args[i] === '-h') {
       console.log(`Usage: noclaude [options]
 
@@ -51,6 +55,7 @@ Options:
   --name, -n       Author name (optional, defaults to env/git config)
   --email, -e      Author email (optional, defaults to env/git config)
   --dry-run, -d    Show what would be done without executing
+  --auto-push, -p  Automatically push to remote after cleaning
   --help, -h       Show this help message
 
 Configuration Priority (highest to lowest):
@@ -62,6 +67,7 @@ Configuration Priority (highest to lowest):
 Examples:
   noclaude --name "rickhallett" --email "rick@example.com"
   noclaude --dry-run
+  noclaude --auto-push
   GIT_AUTHOR_NAME="rickhallett" GIT_AUTHOR_EMAIL="rick@example.com" noclaude
 `);
       process.exit(0);
@@ -97,6 +103,14 @@ function loadEnvFile(): Record<string, string> {
 function getGitConfig(key: string): string | null {
   try {
     return execSync(`git config ${key}`, { encoding: 'utf-8' }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function getCurrentBranch(): string | null {
+  try {
+    return execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
   } catch {
     return null;
   }
@@ -160,6 +174,10 @@ async function main(): Promise<void> {
     console.log('Would execute:');
     console.log(`  git filter-branch --env-filter 'export GIT_AUTHOR_NAME="${name}" ...'`);
     console.log(`  sed filters to remove Claude Code attribution`);
+    if (args.autoPush) {
+      const currentBranch = getCurrentBranch();
+      console.log(`  git push --force-with-lease origin ${currentBranch || 'main'}`);
+    }
     console.log('');
     console.log('Run without --dry-run to execute');
     rl.close();
@@ -197,8 +215,30 @@ async function main(): Promise<void> {
     });
 
     console.log('');
-    console.log('History rewritten. Review with \'git log\' before force pushing.');
-    console.log('To force push: git push --force-with-lease origin main');
+    console.log('History rewritten successfully.');
+
+    if (args.autoPush) {
+      const currentBranch = getCurrentBranch();
+      if (!currentBranch) {
+        console.error('Could not determine current branch. Skipping auto-push.');
+        console.log('To manually push: git push --force-with-lease origin <branch-name>');
+      } else {
+        console.log(`Pushing to origin/${currentBranch}...`);
+        try {
+          execSync(`git push --force-with-lease origin ${currentBranch}`, {
+            stdio: 'inherit'
+          });
+          console.log('Push completed successfully.');
+        } catch (pushError) {
+          console.error('Push failed:', (pushError as Error).message);
+          console.log(`To retry manually: git push --force-with-lease origin ${currentBranch}`);
+        }
+      }
+    } else {
+      console.log('Review with \'git log\' before force pushing.');
+      const currentBranch = getCurrentBranch();
+      console.log(`To force push: git push --force-with-lease origin ${currentBranch || 'main'}`);
+    }
 
   } catch (error) {
     console.error('Error:', (error as Error).message);
