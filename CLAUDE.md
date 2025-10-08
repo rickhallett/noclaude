@@ -23,18 +23,20 @@ The build uses Bun's bundler with:
 
 Single-file CLI architecture (`src/noclaude.ts`):
 
-1. **CLI argument parsing** (`parseArgs()`): Manual argument parser supporting `--name/-n` and `--email/-e` flags
-2. **Interactive prompt**: Uses Node's readline for confirmation before rewriting history
-3. **Git operation**: Executes `git filter-branch` via `execSync` with two filters:
-   - `--env-filter`: Sets author and committer name/email from CLI args
+1. **CLI argument parsing** (`parseArgs()`): Manual argument parser supporting `--name/-n`, `--email/-e`, `--dry-run/-d`, and `--auto-push/-p` flags
+2. **Configuration resolution** (`getAuthorInfo()`): Checks CLI args, environment variables, `.env` file, then git config in priority order
+3. **Interactive prompt**: Uses Node's readline for confirmation before rewriting history
+4. **Git operation**: Executes `git filter-branch` via `execSync` with two filters:
+   - `--env-filter`: Sets author and committer name/email from resolved configuration
    - `--msg-filter`: Uses `sed` to strip Claude Code attribution lines from commit messages
+5. **Auto-push**: Optionally executes `git push --force-with-lease` after successful history rewrite
 
 ## Important Constraints
 
 - **Bun runtime required**: Shebang is `#!/usr/bin/env bun` (not node)
 - **Use lowercased filenames** for all JavaScript/TypeScript files
 - **Never use emojis** in code or output
-- **Both `--name` and `--email` are required** arguments (enforced in `parseArgs()`)
+- **Author information is required** but can come from multiple sources (CLI args, env vars, .env file, or git config)
 
 ## Development Workflow
 
@@ -54,8 +56,10 @@ Single-file CLI architecture (`src/noclaude.ts`):
 
 ```bash
 bun link
-noclaude -n "author-name" -e "email@example.com"
+noclaude --dry-run
 ```
+
+Test on a disposable repository first before using on production code.
 
 ## Publishing
 
